@@ -1,0 +1,27 @@
+<html>
+  <head>
+    <title>Jiragraph Global Configuration</title>
+    <meta name="decorator" content="atl.admin">
+    $webResourceManager.requireResource("com.atlassian.auiplugin:ajs")
+  </head>
+  <body>
+    <form id="admin" class="aui" action="" method="POST">
+      <h1>Jira-graph Global Configuration</h1>
+      <div class="field-group">
+        <label for="branch1">Branch 1:</label>
+        <input type="text" id="branch1" name="branch1" value=$branch1 class="text">
+      </div>
+      <div class="field-group">
+        <label for="branch2">Branch 2:</label>
+        <input type="text" id="branch2" name="branch2" value=$branch2 class="text">
+      </div>
+      <div class="field-group">
+        <label for="branch3">Branch 3:</label>
+        <input type="text" id="branch3" name="branch3" value=$branch3 class="text">
+      </div>
+      <div class="field-group">
+        <input type="submit" value="Save" class="button">
+      </div>
+    </form>
+  </body>
+</html>

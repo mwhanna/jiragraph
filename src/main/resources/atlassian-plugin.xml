@@ -1,0 +1,44 @@
+<atlassian-plugin key="${atlassian.plugin.key}" name="${project.name}" plugins-version="2">
+    <plugin-info>
+        <description>${project.description}</description>
+        <version>${project.version}</version>
+        <vendor name="${project.organization.name}" url="${project.organization.url}" />
+        <param name="plugin-icon">images/pluginIcon.png</param>
+        <param name="plugin-logo">images/pluginLogo.png</param>
+        <param name="configure.url">/plugins/servlet/jiragraph/admin</param>
+    </plugin-info>
+
+    <servlet key="admin-servlet" class="jiragraph.servlets.AdminServlet" name="JiragraphAdminServlet">
+      <url-pattern>/jiragraph/admin</url-pattern>
+    </servlet>
+
+    <web-section key="mysection" name="Plugin Configuration" location="jiragraph-admin-link" weight="10">
+        <label>Plugin Configuration</label>
+    </web-section>
+
+    <web-item key="jiragraph-admin-link" name="Jiragraph Global Config" section="system.user.options" weight="60">
+      <description>Link to jiragraph admin page.</description>
+      <label>Jiragraph Global Config</label>
+      <link linkId="jiragraph-admin-link">/plugins/servlet/jiragraph/admin</link>
+    </web-item>
+
+    <web-item key="admin_link" name="admin" section="jiragraph-admin-link/mysection" weight="10">
+        <label>All Items</label>
+        <link linkId="admin_link">/plugins/servlet/jiragraph/admin</link>
+    </web-item>
+
+    <!-- add our i18n resource -->
+    <resource type="i18n" name="i18n" location="jiragraph"/>
+
+    <!-- add our web resources -->
+    <web-resource key="jiragraph-resources" name="jiragraph Web Resources">
+        <dependency>com.atlassian.auiplugin:ajs</dependency>
+
+        <resource type="download" name="jiragraph.css" location="/css/jiragraph.css"/>
+        <resource type="download" name="jiragraph.js" location="/js/jiragraph.js"/>
+        <resource type="download" name="images/" location="/images"/>
+
+        <context>jiragraph</context>
+    </web-resource>
+
+</atlassian-plugin>
