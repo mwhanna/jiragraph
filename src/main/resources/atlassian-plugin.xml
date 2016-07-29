@@ -12,6 +12,10 @@
       <url-pattern>/jiragraph/admin</url-pattern>
     </servlet>
 
+    <servlet key="commits-servlet" class="jiragraph.servlets.CommitsServlet" name="bb.jira.CommitsServlet">
+        <url-pattern>/bb_dag/*</url-pattern>
+    </servlet>
+
     <web-item key="admin_link" name="admin" section="system.user.options/jira-help" weight="10">
         <label>Jiragraph Config</label>
         <link linkId="admin_link">/plugins/servlet/jiragraph/admin</link>
@@ -23,12 +27,13 @@
     <!-- add our web resources -->
     <web-resource key="jiragraph-resources" name="jiragraph Web Resources">
         <dependency>com.atlassian.auiplugin:ajs</dependency>
-
+        <dependency>com.atlassian.jira.plugins.jira-development-integration-plugin:devstatus-panel-and-dialog-resources</dependency>
         <resource type="download" name="jiragraph.css" location="/css/jiragraph.css"/>
         <resource type="download" name="jiragraph.js" location="/js/jiragraph.js"/>
         <resource type="download" name="images/" location="/images"/>
-
         <context>jiragraph</context>
+        <context>jira.view.issue</context>
+        <context>gh-rapid</context>
     </web-resource>
 
 </atlassian-plugin>
