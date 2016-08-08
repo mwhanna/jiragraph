@@ -719,7 +719,7 @@ if (!gsylviedavies) {
                     isPlumbed: false,
                     sha1: sha1,
                     x: farLeftPosition,
-                    y: 8 + (15 * i),
+                    y: 8 + (25 * i),
                     row: commitsList.length,
                     col: 0
                 };
