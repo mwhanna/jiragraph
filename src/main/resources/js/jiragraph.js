@@ -64,6 +64,34 @@ if (!gsylviedavies) {
                 }
             }
 
+            var head = document.getElementById("viewissue-devstatus-panel_heading");
+            var hl = head.childNodes;
+            for (var r = 0; r < hl.length; r++) {
+                if (hl.item(r).className === 'ops') {
+                    head = hl.item(r);
+                    break;
+                }
+            }
+
+            var arrayOfRepos = ["repo1", "repo2", "repo3"];
+            /*
+            Ajax call to Servlet, returns array
+             */
+            head.className = "aui-toolbar toolbar-group pluggable-ops";
+            head.id = "repo-toolbar";
+            for(var o = 0; o < arrayOfRepos.length; o++) {
+                var temp = document.createElement("LI");
+                temp.className = "toolbar-item";
+                var repoName = arrayOfRepos.get(o);
+                var tempText = document.createTextNode(repoName);
+                var a = document.createElement('a');
+                a.appendChild(tempText);
+                a.title = repoName;
+                a.href = "/plugins/servlet/jiragraph/repolist?currentRepo=" + repoName;
+                temp.appendChild(a);
+                document.getElementById("repo-toolbar").appendChild(temp);
+            }
+
             tbl = document.createElement('table');
             tbl.id = "bit-booster-tbl";
             tbl.style.width = "100%";
