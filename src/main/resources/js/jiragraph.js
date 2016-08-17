@@ -1084,6 +1084,7 @@ if (!gsylviedavies) {
 
         $( ".graphbar" ).click(function() {
             $( ".current" ).removeClass("current");
+            $(this).addClass("current");
         });
     }
 
