@@ -715,6 +715,7 @@ if (!gsylviedavies) {
             }
 
             var lines = JSON.parse(data);
+            doMattStuff(lines);
 
             function clear() {
                 svgHolder.commitsList.length = 0;
@@ -1023,6 +1024,68 @@ if (!gsylviedavies) {
         },
         false
     );
+
+    function doMattStuff(lines) {
+        var head = document.getElementById("viewissue-devstatus-panel_heading");
+        var hl = head.childNodes;
+        for (var r = 0; r < hl.length; r++) {
+            if (hl.item(r).className === 'ops') {
+                head = hl.item(r);
+                break;
+            }
+        }
+
+        var arrayOfRepos = [];
+
+        var currentRepoObj = lines['currentRepo'];
+        var currentRepo = currentRepoObj['repo'];
+        var currentProj = currentRepoObj['project'];
+
+        var repos = lines['repos'];
+        for (var i = 0; i < repos.length; i++) {
+            var item = repos[i];
+            var repo = item['repo'];
+            var projName = item['project'];
+            var testValue = projName + "/" + repo;
+            if ($.inArray(repo, arrayOfRepos) > -1) {
+                var index = arrayOfRepos.indexOf(repo);
+                arrayOfRepos.splice(index, 1);
+                arrayOfRepos.push(testValue);
+            }
+            else {
+                arrayOfRepos.push(repo);
+            }
+        }
+        var url = window.location.pathname;
+        if (url.indexOf("/bb_net/") >= 0) {
+            url = url.replace("/bb_net/", "/bb_dag/") + "/&bbProj=" + currentProj + "&bbRepo=" + currentRepo + "&all=y";
+        } else {
+            url = "../plugins/servlet/bb_dag" + window.location.pathname + "/&bbProj=" + currentProj + "&bbRepo=" + currentRepo;
+        }
+        var oReq = new XMLHttpRequest();
+        //oReq.addEventListener("load", drawGraph);
+        oReq.open("GET", url);
+        oReq.send();
+
+        head.className = "aui-toolbar toolbar-group pluggable-ops";
+        head.id = "repo-toolbar";
+        for(var o = 0; o < arrayOfRepos.length; o++) {
+            var temp = document.createElement("li");
+            temp.className = "graphbar toolbar-item";
+            var repoName = arrayOfRepos.get(o);
+            temp.id = repoName;
+            if (repoName === currentRepo) {
+                temp.className = "graphbar toolbar-item current";
+            }
+            var tempText = document.createTextNode(repoName);
+            temp.appendChild(tempText);
+            document.getElementById("repo-toolbar").appendChild(temp);
+        }
+
+        $( ".graphbar" ).click(function() {
+            $( ".current" ).removeClass("current");
+        });
+    }
 
 }
 gsylviedavies = true;
