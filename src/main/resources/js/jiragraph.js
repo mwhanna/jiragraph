@@ -64,30 +64,6 @@ if (!gsylviedavies) {
                 }
             }
 
-            var head = document.getElementById("viewissue-devstatus-panel_heading");
-            var hl = head.childNodes;
-            for (var r = 0; r < hl.length; r++) {
-                if (hl.item(r).className === 'ops') {
-                    head = hl.item(r);
-                    break;
-                }
-            }
-
-            var arrayOfRepos = ["repo1", "repo2", "repo3"];
-            /*
-            Ajax call to Servlet, returns array
-             */
-            head.className = "aui-toolbar toolbar-group pluggable-ops";
-            head.id = "repo-toolbar";
-            for(var o = 0; o < arrayOfRepos.length; o++) {
-                var temp = document.createElement("li");
-                temp.className = "toolbar-item";
-                var repoName = arrayOfRepos[o];
-                var tempText = document.createTextNode(repoName);
-                temp.appendChild(tempText);
-                document.getElementById("repo-toolbar").appendChild(temp);
-            }
-
             tbl = document.createElement('table');
             tbl.id = "bit-booster-tbl";
             tbl.style.width = "100%";
@@ -106,6 +82,48 @@ if (!gsylviedavies) {
             }
             svgHolder.tdL.appendChild(svg);
         }
+
+        var tbl2 = document.getElementById("bit-booster-tbl");
+        var head = tbl2.parentNode;
+
+        var arrayOfRepos = ["repo1", "repo2", "repo3"];
+
+        var myDiv = document.createElement("div");
+        myDiv.id = "repo-toolbar";
+        myDiv.className = "tabwrap tabs2";
+
+        var ul = document.createElement("ul");
+        ul.id = "repo-ul";
+        ul.className = "tabs horizontal";
+
+        for (var o = 0; o < arrayOfRepos.length; o++) {
+            var temp = document.createElement("li");
+            temp.className = "graphbar";
+            var repoName = arrayOfRepos[o];
+            temp.id = repoName;
+            temp.setAttribute('data-id', repoName);
+            temp.setAttribute('data-label', repoName);
+            temp.setAttribute('data-href', '');
+            var tempText = document.createTextNode(repoName);
+            var a = document.createElement("a");
+            a.appendChild(tempText);
+            a.className = "ajax-activity-content";
+            a.id = repoName + "-a";
+            a.href = "";
+            if (repoName === "repo2") {
+                temp.className = "active";
+            }
+            temp.appendChild(a);
+            ul.appendChild(temp);
+        }
+        myDiv.appendChild(ul);
+        head.insertBefore(myDiv, head.firstChild);
+
+        $(".graphbar").click(function () {
+            $(".active").removeClass("active");
+            $(this).addClass("active");
+        });
+
     }
 
     function f() {
@@ -1026,14 +1044,6 @@ if (!gsylviedavies) {
     );
 
     function doMattStuff(lines) {
-        var head = document.getElementById("viewissue-devstatus-panel_heading");
-        var hl = head.childNodes;
-        for (var r = 0; r < hl.length; r++) {
-            if (hl.item(r).className === 'ops') {
-                head = hl.item(r);
-                break;
-            }
-        }
 
         var arrayOfRepos = [];
 
@@ -1056,36 +1066,18 @@ if (!gsylviedavies) {
                 arrayOfRepos.push(repo);
             }
         }
-        var url = window.location.pathname;
-        if (url.indexOf("/bb_net/") >= 0) {
-            url = url.replace("/bb_net/", "/bb_dag/") + "/&bbProj=" + currentProj + "&bbRepo=" + currentRepo + "&all=y";
-        } else {
-            url = "../plugins/servlet/bb_dag" + window.location.pathname + "/&bbProj=" + currentProj + "&bbRepo=" + currentRepo;
-        }
-        var oReq = new XMLHttpRequest();
-        //oReq.addEventListener("load", drawGraph);
-        oReq.open("GET", url);
-        oReq.send();
 
-        head.className = "aui-toolbar toolbar-group pluggable-ops";
-        head.id = "repo-toolbar";
-        for(var o = 0; o < arrayOfRepos.length; o++) {
-            var temp = document.createElement("li");
-            temp.className = "graphbar toolbar-item";
-            var repoName = arrayOfRepos[o];
-            temp.id = repoName;
-            if (repoName === currentRepo) {
-                temp.className = "graphbar toolbar-item current";
-            }
-            var tempText = document.createTextNode(repoName);
-            temp.appendChild(tempText);
-            document.getElementById("repo-toolbar").appendChild(temp);
-        }
+        //var url = window.location.pathname;
+        //if (url.indexOf("/bb_net/") >= 0) {
+        //    url = url.replace("/bb_net/", "/bb_dag/") + "/&bbProj=" + currentProj + "&bbRepo=" + currentRepo + "&all=y";
+        //} else {
+        //    url = "../plugins/servlet/bb_dag" + window.location.pathname + "/&bbProj=" + currentProj + "&bbRepo=" + currentRepo;
+        //}
+        //var oReq = new XMLHttpRequest();
+        ////oReq.addEventListener("load", drawGraph);
+        //oReq.open("GET", url);
+        //oReq.send();
 
-        $( ".graphbar" ).click(function() {
-            $( ".current" ).removeClass("current");
-            $(this).addClass("current");
-        });
     }
 
 }
