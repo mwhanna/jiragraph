@@ -75,11 +75,12 @@ public class CommitsServlet extends HttpServlet
 
 			if ( "TKT-1".equals( ticket ) )
 			{
-				pw.write( "{\n" +
-						"\"jira\":\"http://localhost:2990/jira\",\n" +
-						"\"repos\":[{\"repo\":\"mdi\",\"proj\":\"PROJECT_1\",\"hits\":5}\n" +
-						"],\n" +
-						"\"currentRepo\":{\"repo\":\"mdi\",\"proj\":\"PROJECT_1\",\"hits\":5},\n" +
+				pw.write( "\n{\n\"jira\":\"http://localhost:2990/jira\",\n" +
+						"\"err\":\"742 commits found that match [TKT-1].  Only analyzing first 10.\",\n" +
+						"\"repos\":[{\"repo\":\"rep_1\",\"proj\":\"PROJECT_1\",\"hits\":1}\n" +
+						",{\"repo\":\"mdi\",\"proj\":\"PROJECT_1\",\"hits\":742}\n" +
+						"]," +
+						"\"currentRepo\":{\"repo\":\"mdi\",\"proj\":\"PROJECT_1\",\"hits\":742},\n" +
 						"\"tips\":[{\"id\":\"04f104890582e063b4150196e292416cdeb33f07\", \"refs\":\"(tag: 515.2.628)\"},{\"id\":\"3a0dbffce75b50937d07840de76a123b4b528b34\", \"refs\":\"(HEAD -> master)\"},{\"id\":\"4e3fc7214afcf1e72b72d63b9f976d118e607422\", \"refs\":\"(tag: 514.9.624, release/624, release.624/MRR-12789)\"},{\"id\":\"58b50c48019c27cb48a16a09ce514fd0012cf5c5\", \"refs\":\"(release/616, release.616/CST-72)\"},{\"id\":\"a0af6781fe7d36466cefddf4d95154d7873f6fea\", \"refs\":\"(tag: 511.2.620, release/620, release.620/CST-78)\"}],\"hits\":[\"e5a79b0b398882cf85cd247dbac3d96c0d352a53\",\"75b03cd6e8f666e9328c7ca7d36adf54b0e73a4d\",\"0089e39b366cebe9a411955a8e7f50f9edd09dbc\",\"f2bde6f4d3b32b4f38e1280f7822dd192c61957d\",\"968713f096cc7d55c41619465da0b0bae67c7e79\"],\"lines\":[[\"1471035368\",\"6 days ago\",\"3a0dbffce75b50937d07840de76a123b4b528b34\",\"e5a79b0b398882cf85cd247dbac3d96c0d352a53\",\"HEAD -> master\",\"\",\"\"],\n"
 						+
 						"[\"1470786156\",\"9 days ago\",\"04f104890582e063b4150196e292416cdeb33f07\",\"e5a79b0b398882cf85cd247dbac3d96c0d352a53\",\"tag: 515.2.628\",\"\",\"\"],\n"
