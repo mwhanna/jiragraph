@@ -82,7 +82,7 @@ if (!gsylviedavies) {
             for(var o = 0; o < arrayOfRepos.length; o++) {
                 var temp = document.createElement("li");
                 temp.className = "toolbar-item";
-                var repoName = arrayOfRepos.get(o);
+                var repoName = arrayOfRepos[o];
                 var tempText = document.createTextNode(repoName);
                 temp.appendChild(tempText);
                 document.getElementById("repo-toolbar").appendChild(temp);
@@ -744,7 +744,7 @@ if (!gsylviedavies) {
                     isPlumbed: false,
                     sha1: sha1,
                     x: farLeftPosition,
-                    y: 8 + (25 * i),
+                    y: 8 + (32 * i),
                     row: commitsList.length,
                     col: 0
                 };
@@ -1072,7 +1072,7 @@ if (!gsylviedavies) {
         for(var o = 0; o < arrayOfRepos.length; o++) {
             var temp = document.createElement("li");
             temp.className = "graphbar toolbar-item";
-            var repoName = arrayOfRepos.get(o);
+            var repoName = arrayOfRepos[o];
             temp.id = repoName;
             if (repoName === currentRepo) {
                 temp.className = "graphbar toolbar-item current";

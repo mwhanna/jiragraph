@@ -72,26 +72,35 @@ public class CommitsServlet extends HttpServlet
 
 		try
 		{
+
 			if ( "TKT-1".equals( ticket ) )
 			{
-				pw.write( "\n" +
-						"{\n" +
+				pw.write( "{\n" +
 						"\"jira\":\"http://localhost:2990/jira\",\n" +
-						"\"repos\":[\"proj1/repo1\", \"proj1/repo2\", \"proj2/repo3\"],\n" +
-						"\"currentRepo\":\"proj1/repo2\",\n" +
-						"\"lines\":[[\"1470692999\",\"43 minutes ago\",\"132285b9a74fecfcda628822ef1e921eca32002a\",\"fbccfa1ca1f1da3b336c566bd05e884b7341ffc9\",\"CPEI-71\",\"\",\"\",true],\n"
+						"\"repos\":[{\"repo\":\"mdi\",\"proj\":\"PROJECT_1\",\"hits\":5}\n" +
+						"],\n" +
+						"\"currentRepo\":{\"repo\":\"mdi\",\"proj\":\"PROJECT_1\",\"hits\":5},\n" +
+						"\"tips\":[{\"id\":\"04f104890582e063b4150196e292416cdeb33f07\", \"refs\":\"(tag: 515.2.628)\"},{\"id\":\"3a0dbffce75b50937d07840de76a123b4b528b34\", \"refs\":\"(HEAD -> master)\"},{\"id\":\"4e3fc7214afcf1e72b72d63b9f976d118e607422\", \"refs\":\"(tag: 514.9.624, release/624, release.624/MRR-12789)\"},{\"id\":\"58b50c48019c27cb48a16a09ce514fd0012cf5c5\", \"refs\":\"(release/616, release.616/CST-72)\"},{\"id\":\"a0af6781fe7d36466cefddf4d95154d7873f6fea\", \"refs\":\"(tag: 511.2.620, release/620, release.620/CST-78)\"}],\"hits\":[\"e5a79b0b398882cf85cd247dbac3d96c0d352a53\",\"75b03cd6e8f666e9328c7ca7d36adf54b0e73a4d\",\"0089e39b366cebe9a411955a8e7f50f9edd09dbc\",\"f2bde6f4d3b32b4f38e1280f7822dd192c61957d\",\"968713f096cc7d55c41619465da0b0bae67c7e79\"],\"lines\":[[\"1471035368\",\"6 days ago\",\"3a0dbffce75b50937d07840de76a123b4b528b34\",\"e5a79b0b398882cf85cd247dbac3d96c0d352a53\",\"HEAD -> master\",\"\",\"\"],\n"
 						+
-						"[\"1470692149\",\"57 minutes ago\",\"8f83c01423ccb199d70b5fdbe0e8ddd70adb2229\",\"2fa02264d6fa6480785e72f01da6be22fa3770af\",\"HEAD -> master, OAO-761\",\"\",\"\"],\n"
+						"[\"1470786156\",\"9 days ago\",\"04f104890582e063b4150196e292416cdeb33f07\",\"e5a79b0b398882cf85cd247dbac3d96c0d352a53\",\"tag: 515.2.628\",\"\",\"\"],\n"
 						+
-						"[\"1470683388\",\"3 hours ago\",\"fbccfa1ca1f1da3b336c566bd05e884b7341ffc9\",\"294bbf40693e6e5b16dce40f775812a7e4fe19c3\",\"\",\"\",\"\",true],\n"
+						"[\"1469834497\",\"3 weeks ago\",\"4e3fc7214afcf1e72b72d63b9f976d118e607422\",\"e5a79b0b398882cf85cd247dbac3d96c0d352a53\",\"tag: 514.9.624, release/624, release.624/MRR-12789\",\"\",\"\"],\n"
 						+
-						"[\"1470681880\",\"4 hours ago\",\"294bbf40693e6e5b16dce40f775812a7e4fe19c3\",\"c642de2670212f424d1f20efa92e46a560da63e6\",\"\",\"\",\"\",true],\n"
+						"[\"1465850176\",\"9 weeks ago\",\"58b50c48019c27cb48a16a09ce514fd0012cf5c5\",\"e5a79b0b398882cf85cd247dbac3d96c0d352a53\",\"release/616, release.616/CST-72\",\"\",\"\"],\n"
 						+
-						"[\"1470681880\",\"4 hours ago\",\"c642de2670212f424d1f20efa92e46a560da63e6\",\"96d13a61e6667eb4a1a2c1927c387a2479c0fff9\",\"\",\"\",\"\",true],\n"
+						"[\"1465487872\",\"2 months ago\",\"a0af6781fe7d36466cefddf4d95154d7873f6fea\",\"e5a79b0b398882cf85cd247dbac3d96c0d352a53\",\"tag: 511.2.620, release/620, release.620/CST-78\",\"\",\"\"],\n"
 						+
-						"[\"1470681880\",\"4 hours ago\",\"96d13a61e6667eb4a1a2c1927c387a2479c0fff9\",\"2fa02264d6fa6480785e72f01da6be22fa3770af\",\"\",\"\",\"\",true],\n"
+						"[\"1460128709\",\"4 months ago\",\"e5a79b0b398882cf85cd247dbac3d96c0d352a53\",\"75b03cd6e8f666e9328c7ca7d36adf54b0e73a4d\",\"\",\"\",\"\",true],\n"
 						+
-						"[\"1470418889\",\"3 days ago\",\"2fa02264d6fa6480785e72f01da6be22fa3770af\",\"88fc434302df5d15a886d30f69282a0471fa1ef8\",\"tag: 517.20160805.630, MRR-12888, DAILY.prev\",\"\",\"\"]\n"
+						"[\"1460126987\",\"4 months ago\",\"75b03cd6e8f666e9328c7ca7d36adf54b0e73a4d\",\"0089e39b366cebe9a411955a8e7f50f9edd09dbc f2bde6f4d3b32b4f38e1280f7822dd192c61957d\",\"\",\"\",\"\",true],\n"
+						+
+						"[\"1460126338\",\"4 months ago\",\"0089e39b366cebe9a411955a8e7f50f9edd09dbc\",\"968713f096cc7d55c41619465da0b0bae67c7e79\",\"\",\"\",\"\",true],\n"
+						+
+						"[\"1460122146\",\"4 months ago\",\"968713f096cc7d55c41619465da0b0bae67c7e79\",\"4dcafbaa6c832e299ad415eb2f24f4b45098fa03\",\"\",\"\",\"\",true],\n"
+						+
+						"[\"1459538972\",\"5 months ago\",\"f2bde6f4d3b32b4f38e1280f7822dd192c61957d\",\"4dcafbaa6c832e299ad415eb2f24f4b45098fa03\",\"\",\"\",\"\",true],\n"
+						+
+						"[\"1459532691\",\"5 months ago\",\"4dcafbaa6c832e299ad415eb2f24f4b45098fa03\",\"b16d2073c4465881a276015a1df5b2ded1ff3764\",\"tag: 507.20160401.612\",\"\",\"\"]\n"
 						+
 						"]\n" +
 						"}\n" );
