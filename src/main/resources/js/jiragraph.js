@@ -122,6 +122,8 @@ if (!gsylviedavies) {
         $(".graphbar").click(function () {
             $(".active").removeClass("active");
             $(this).addClass("active");
+            var myRepoName = this.id;
+            //getData(myRepoName);
         });
 
     }
