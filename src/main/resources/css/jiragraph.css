@@ -1,0 +1,22 @@
+
+#bit-booster {
+}
+
+circle:hover, rect:hover + circle, circle.commitHover {
+    r: 5;
+    fill: black;
+    stroke: black;
+    stroke-width: 3;
+}
+
+#commits-table tr td {
+    padding: 4px 0;
+}
+
+#commits-table time {
+    white-space: nowrap;
+}
+
+#commits-table tr:hover, #commits-table tr.commitHover {
+    background: #f5f5f5;
+}

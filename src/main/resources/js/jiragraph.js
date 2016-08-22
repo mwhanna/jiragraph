@@ -1,6 +1,6 @@
-var gsylviedavies;
-var $ = jQuery;
-if (!gsylviedavies) {
+(function ($) {
+
+    var qs = {}; // parsed query-string
 
     var commitRegex = /reverts commit ([A-Fa-f0-9]{40})/g;
     var svgNS = "http://www.w3.org/2000/svg";
@@ -18,6 +18,7 @@ if (!gsylviedavies) {
                 top: (el.top + scrollY)
             };
     }
+
 
     function redrawSvg() {
         var svg = document.createElementNS(svgNS, "svg");
@@ -68,64 +69,55 @@ if (!gsylviedavies) {
             tbl.id = "bit-booster-tbl";
             tbl.style.width = "100%";
             var tr = tbl.insertRow();
+            var tdTop = tr.insertCell();
+            tdTop.setAttribute("colspan", 3);
+            tdTop.id = 'bb-tdTop';
+            tr = tbl.insertRow();
             var tdL = tr.insertCell();
             var tdR = tr.insertCell();
+            var tdZ = tr.insertCell();
             tdL.style.verticalAlign = "top";
-            tdR.style.width = "99%";
+            tdL.style.width = "1%";
+            tdR.style.width = "1%";
             tdR.style.verticalAlign = "top";
+            tdZ.style.width = "98%";
             div.insertBefore(tbl, div.firstChild);
             tdL.appendChild(svg);
             svgHolder.tdL = tdL;
+            svgHolder.tdR = tdR;
+
+            var tblData = document.createElement('table');
+            tblData.id = "commits-table";
+            tdR.appendChild(tblData);
+
         } else {
             if (!svgHolder.tdL) {
-                svgHolder.tdL = tbl.getElementsByTagName("td").item(0);
+                var cells = tbl.getElementsByTagName("td");
+                svgHolder.tdL = cells.item(0);
+                svgHolder.tdR = cells.item(1);
             }
             svgHolder.tdL.appendChild(svg);
         }
 
-        var tbl2 = document.getElementById("bit-booster-tbl");
-        var head = tbl2.parentNode;
-
-        var arrayOfRepos = ["repo1", "repo2", "repo3"];
-
-        var myDiv = document.createElement("div");
-        myDiv.id = "repo-toolbar";
-        myDiv.className = "tabwrap tabs2";
-
-        var ul = document.createElement("ul");
-        ul.id = "repo-ul";
-        ul.className = "tabs horizontal";
-
-        for (var o = 0; o < arrayOfRepos.length; o++) {
-            var temp = document.createElement("li");
-            temp.className = "graphbar";
-            var repoName = arrayOfRepos[o];
-            temp.id = repoName;
-            temp.setAttribute('data-id', repoName);
-            temp.setAttribute('data-label', repoName);
-            temp.setAttribute('data-href', '');
-            var tempText = document.createTextNode(repoName);
-            var a = document.createElement("a");
-            a.appendChild(tempText);
-            a.className = "ajax-activity-content";
-            a.id = repoName + "-a";
-            a.href = "";
-            if (repoName === "repo2") {
-                temp.className = "active";
+        var bbGraphControl = document.getElementById("bbGraphControl");
+        if (qs['jira']) {
+            if (!bbGraphControl) {
+                var isCondensed = qs['grep'] === 'true';
+                var d = document.createElement('div');
+                d.id = 'bbGraphControl';
+                if (isCondensed) {
+                    var expandUrl = window.location.href.replace('grep=true', 'grep=false');
+                    d.innerHTML = '<u>condense</u>&nbsp;|&nbsp;<a href=' + expandUrl + '>expand</a>';
+                } else {
+                    var shrinkUrl = window.location.href.replace('grep=false', 'grep=true');
+                    d.innerHTML = '<a href=' + shrinkUrl + '>condense</a>&nbsp;|&nbsp;<u>expand</u>';
+                }
+                bbGraphControl = d;
+            } else {
+                bbGraphControl.parentNode.removeChild(bbGraphControl);
             }
-            temp.appendChild(a);
-            ul.appendChild(temp);
+            svgHolder.tdL.appendChild(bbGraphControl);
         }
-        myDiv.appendChild(ul);
-        head.insertBefore(myDiv, head.firstChild);
-
-        $(".graphbar").click(function () {
-            $(".active").removeClass("active");
-            $(this).addClass("active");
-            var myRepoName = this.id;
-            //getData(myRepoName);
-        });
-
     }
 
     function f() {
@@ -168,6 +160,7 @@ if (!gsylviedavies) {
         function readElbow(x, y) {
             return elbows[x] && elbows[x][y];
         }
+
 
         function isMerge(my) {
             return my.parents && my.parents.length > 1;
@@ -406,6 +399,12 @@ if (!gsylviedavies) {
             }
 
             my.path = function (pos, targetRow, targetCol, targetCommit, dashed) {
+
+                if (dashed && qs['grep'] === 'true') {
+                    // The compressed graph skips unconnected merges (aka "dashed lines").
+                    return;
+                }
+
                 var svg = svgHolder.svg;
                 var commitsList = svgHolder.commitsList;
 
@@ -486,8 +485,13 @@ if (!gsylviedavies) {
                 circle.setAttribute("cx", pos[0]);
                 circle.setAttribute("cy", pos[1]);
                 circle.setAttribute("r", 4);
-                circle.setAttribute("fill", !my.revert ? pos.color : (my.revert === 1 ? "red" : "orange"));
+                if (my.bbMatch) {
+                    circle.setAttribute("fill", "red");
+                } else {
+                    circle.setAttribute("fill", !my.revert ? "black" : (my.revert === 1 ? "red" : "orange"));
+                }
                 circle.setAttribute("stroke", "none");
+
                 svg.appendChild(circle);
 
                 jqueryEnterAndLeave(rect);
@@ -735,9 +739,30 @@ if (!gsylviedavies) {
             }
 
             var lines = JSON.parse(data);
-            doMattStuff(lines);
+            var repos = lines.repos;
+            var currentRepo = lines.currentRepo.repo;
+            var currentProj = lines.currentRepo.proj;
+
+            var bbTdTop = document.getElementById('bb-tdTop');
+            while (bbTdTop.firstChild) {
+                bbTdTop.removeChild(bbTdTop.firstChild);
+            }
+            var tbl = document.createElement("table");
+            var topTr = tbl.insertRow();
+            for (i = 0; i < repos.length; i++) {
+                var r = repos[i];
+                var topCell = topTr.insertCell();
+                topCell.textContent = r.repo + ' (' + r.hits + ')';
+            }
+            bbTdTop.appendChild(tbl);
+
 
             function clear() {
+                var tblData = document.getElementById('commits-table');
+                while (tblData.firstChild) {
+                    tblData.removeChild(tblData.firstChild);
+                }
+
                 svgHolder.commitsList.length = 0;
                 for (var k in doIt.commitsTable) {
                     delete doIt.commitsTable[k];
@@ -749,6 +774,7 @@ if (!gsylviedavies) {
 
             clear();
 
+
             var jira = lines['jira'];
             lines = lines['lines'];
             var now = Math.floor((new Date).getTime() / 1000);
@@ -759,14 +785,40 @@ if (!gsylviedavies) {
                 var parents = hasParents ? line[3].trim().split(' ') : undefined;
                 var commitsList = svgHolder.commitsList;
 
+                var tblData = document.getElementById('commits-table');
+                var tr = tblData.insertRow();
+                tr.id = 'T_' + sha1;
+                tr.setAttribute('data-commitid', sha1);
+                var td = tr.insertCell();
+                var time = document.createElement('time');
+                var unixTime = Number(line[0]);
+                var date = new Date(unixTime * 1000);
+                var dateShort = date.toLocaleDateString(undefined, dateOptionsShort);
+                var dateLong = date.toLocaleDateString(undefined, dateOptionsLong);
+                var timeString = date.toLocaleTimeString();
+                if (dateShort === dateLong) {
+                    dateLong = dateShort + " " + timeString;
+                }
+                var dateRfc = date.toISOString();
+                if (now - unixTime < 60 * 60 * 24 * 7) {
+                    dateShort = line[1];
+                }
+                time.setAttribute("title", dateLong);
+                time.setAttribute("datetime", dateRfc);
+                time.textContent = dateShort;
+                td.appendChild(time);
+
+                var svgPos = getOffset(svgHolder.svg);
+                var offset = getOffset(time);
                 var c = {
                     isDone: false,
                     isPlumbed: false,
                     sha1: sha1,
                     x: farLeftPosition,
-                    y: 8 + (32 * i),
+                    y: 8 + offset.top - svgPos.top,
                     row: commitsList.length,
-                    col: 0
+                    col: 0,
+                    htmlElement: time
                 };
 
                 commitsList.push(c);
@@ -779,73 +831,30 @@ if (!gsylviedavies) {
                     c.tags = tagsAndBranches[0];
                     c.branches = tagsAndBranches[1];
                 }
+                if (line.length > 7) {
+                    c.bbMatch = line[7];
+                }
 
-                /*
-                 var row = document.getElementById("T_" + sha1);
-                 if (c) {
-                 $(row).mouseenter(function () {
-                 var svg = document.getElementById("bit-booster");
-                 var sha = this.getAttribute("data-commitid");
-                 if (sha) {
-                 var c = svg.getElementById("C_" + sha);
-                 c.setAttribute("class", "commitHover");
-                 }
-                 }).mouseleave(function () {
-                 var svg = document.getElementById("bit-booster");
-                 var sha = this.getAttribute("data-commitid");
-                 if (sha) {
-                 var c = svg.getElementById("C_" + sha);
-                 c.removeAttribute("class");
-                 }
-                 });
-                 }
-                 */
+                var row = document.getElementById("T_" + sha1);
+                if (c) {
+                    $(row).mouseenter(function () {
+                        var svg = document.getElementById("bit-booster");
+                        var sha = this.getAttribute("data-commitid");
+                        if (sha) {
+                            var c = svg.getElementById("C_" + sha);
+                            c.setAttribute("class", "commitHover");
+                        }
+                    }).mouseleave(function () {
+                        var svg = document.getElementById("bit-booster");
+                        var sha = this.getAttribute("data-commitid");
+                        if (sha) {
+                            var c = svg.getElementById("C_" + sha);
+                            c.removeAttribute("class");
+                        }
+                    });
+                }
 
-                var row = false;
                 if (c && !c.timeSet) {
-                    if (row && !row.graphed) {
-                        var nl = row.getElementsByTagName("time");
-                        var time = nl.item(0);
-                        var unixTime = Number(line[0]);
-                        var date = new Date(unixTime * 1000);
-                        var dateShort = date.toLocaleDateString(undefined, dateOptionsShort);
-                        var dateLong = date.toLocaleDateString(undefined, dateOptionsLong);
-                        var timeString = date.toLocaleTimeString();
-                        if (dateShort === dateLong) {
-                            dateLong = dateShort + " " + timeString;
-                        }
-
-                        var dateRfc = date.toISOString();
-                        if (now - unixTime < 60 * 60 * 24 * 7) {
-                            dateShort = line[1];
-                        }
-
-                        time.setAttribute("title", dateLong);
-                        time.setAttribute("datetime", dateRfc);
-                        time.textContent = dateShort;
-
-                        // jira integration:
-                        if (jira && jira.substr(0, 4).toLocaleLowerCase() === 'http') {
-                            nl = row.getElementsByClassName("message-subject");
-                            var spanMsg = nl.item(0);
-                            var msg = spanMsg.textContent;
-                            var ids = extractIds(msg);
-
-                            for (var j = 0; ids && ids.length && j < ids.length; j++) {
-                                var id = ids[j];
-                                msg = msg.replace(
-                                    new RegExp(id, 'g'),
-                                    "<a class='commits-issues-trigger' data-single-issue='true' data-issue-keys='" + id + "' href='" + jira + "/browse/" + id + "'>" + id + "</a>");
-                            }
-
-                            // "innterHTML" speedup hack:
-                            var newSpan = spanMsg.cloneNode(false);
-                            newSpan.innerHTML = msg;
-                            spanMsg.parentNode.replaceChild(newSpan, spanMsg);
-                        }
-
-                        row.graphed = true;
-                    }
                     c.timeSet = true;
                 }
             }
@@ -910,7 +919,7 @@ if (!gsylviedavies) {
                     }
 
                     nl = row.getElementsByTagName("td");
-                    var td;
+                    td = undefined;
                     for (j = 0; j < nl.length; j++) {
                         td = nl.item(j);
                         if (td.className.indexOf("message") >= 0) {
@@ -967,120 +976,78 @@ if (!gsylviedavies) {
     window.addEventListener("load", function load(event) {
             window.removeEventListener("load", load);
 
-            var doIt = f(event);
+            console.log("about to require...");
+            require(['jira/devstatus/dev-status-module'], function (devStatusModule) {
+                console.log("REQUIRED! YAY!");
 
-            function firstCommitWithN() {
-                return "HEAD?n=3";
-            }
+                var doIt = f(event);
 
-            function drawGraph() {
-                doIt();
-                var svg = document.getElementById("bit-booster");
-                console.log("Found (and deleted:) " + svg);
-                if (svg) {
-                    svg.parentNode.removeChild(svg);
+                function firstCommitWithN() {
+                    return "HEAD?n=3";
                 }
-                redrawSvg();
-                svg = svgHolder.svg;
 
-                if (this.responseText.indexOf("bit-booster plugin requires a license") >= 0) {
-                    var expired = document.getElementById("bit-booster-expired");
-                    if (!expired) {
-                        var a = document.createElement("a");
-                        var path = window.location.pathname;
-                        var x = path.indexOf("/plugins/servlet/");
-                        if (x >= 0) {
-                            a.setAttribute("href", path.substring(0, x + "/plugins/servlet/".length) + "upm");
-                        } else {
-                            a.setAttribute("href", "../plugins/servlet/upm");
+                function drawGraph() {
+                    doIt();
+                    var svg = document.getElementById("bit-booster");
+                    if (svg) {
+                        svg.parentNode.removeChild(svg);
+                    }
+                    redrawSvg();
+                    svg = svgHolder.svg;
+
+                    if (this.responseText.indexOf("bit-booster plugin requires a license") >= 0) {
+                        var expired = document.getElementById("bit-booster-expired");
+                        if (!expired) {
+                            var a = document.createElement("a");
+                            var path = window.location.pathname;
+                            var x = path.indexOf("/plugins/servlet/");
+                            if (x >= 0) {
+                                a.setAttribute("href", path.substring(0, x + "/plugins/servlet/".length) + "upm");
+                            } else {
+                                a.setAttribute("href", "../plugins/servlet/upm");
+                            }
+                            a.id = "bit-booster-expired";
+                            a.innerHTML = "Bit-Booster<br/>Commit&nbsp;Graph<br/>License<br/>Expired!";
+                            var parent = svg.parentNode;
+                            parent.insertBefore(a, svg);
                         }
-                        a.id = "bit-booster-expired";
-                        a.innerHTML = "Bit-Booster<br/>Commit&nbsp;Graph<br/>License<br/>Expired!";
-                        var parent = svg.parentNode;
-                        parent.insertBefore(a, svg);
-                    }
-                } else {
-                    doIt.g(this.responseText);
-                }
-            }
-
-            function getData() {
-                var commitToFetch = firstCommitWithN();
-                if (commitToFetch) {
-                    var url = window.location.pathname;
-                    if (url.indexOf("/bb_net/") >= 0) {
-                        url = url.replace("/bb_net/", "/bb_dag/") + "/" + commitToFetch + "&all=y";
                     } else {
-                        url = "../plugins/servlet/bb_dag" + window.location.pathname + "/" + commitToFetch;
+                        doIt.g(this.responseText);
                     }
-                    var oReq = new XMLHttpRequest();
-                    oReq.addEventListener("load", drawGraph);
-                    oReq.open("GET", url);
-                    oReq.send();
                 }
-            }
 
-            getData();
+                function getData() {
+                    var commitToFetch = firstCommitWithN();
+                    if (commitToFetch) {
+                        var url = window.location.pathname;
+                        url = "/jira/plugins/servlet/bb_dag" + window.location.pathname + "/" + commitToFetch;
+                        var oReq = new XMLHttpRequest();
+                        oReq.addEventListener("load", drawGraph);
+                        oReq.open("GET", url);
+                        oReq.send();
+                    }
+                }
 
+                var checkExist = setInterval(function () {
+                    if ($('#viewissue-devstatus-panel').length) {
+                        clearInterval(checkExist);
+                        getData();
+                        var x = JIRA.DevStatus.devStatusModule;
+                        var devStatus = JIRA.DevStatus.devStatusModule.devStatusData;
 
-            var fff = JIRA.DevStatus.devStatusModule.devStatusData.retrieveAggregateData;
-            var a1 = JIRA.DevStatus.devStatusModule;
-            var a2 = JIRA.DevStatus.devStatusModule.devStatusData;
-            a2.on("beforeRequest", function () {
-                console.log("JIRAGRAPH WUZ HERE BEFOREREQUEST!");
-                getData();
+                        console.log("LOOKING AT x:");
+                        console.log(x);
+                        console.log("LOOKING AT devStatusModule:");
+                        console.log(devStatusModule);
+
+                        devStatus.on("beforeRequest", function () {
+                            console.log("JIRAGRAPH WUZ HERE BEFOREREQUEST!");
+                            getData();
+                        });
+                    }
+                }, 166);
             });
-
-            /*
-             var devStatusData = new JIRA.DevStatus.DevStatusData(
-             {issueId: undefined, issueKey: undefined}
-             );
-             devStatusData.on('requestSuccess', function () {
-             console.log("JiraGraph WUZ here Request Success!!!!!");
-             getData();
-             });
-             */
-
         },
         false
     );
-
-    function doMattStuff(lines) {
-
-        var arrayOfRepos = [];
-
-        var currentRepoObj = lines['currentRepo'];
-        var currentRepo = currentRepoObj['repo'];
-        var currentProj = currentRepoObj['project'];
-
-        var repos = lines['repos'];
-        for (var i = 0; i < repos.length; i++) {
-            var item = repos[i];
-            var repo = item['repo'];
-            var projName = item['project'];
-            var testValue = projName + "/" + repo;
-            if ($.inArray(repo, arrayOfRepos) > -1) {
-                var index = arrayOfRepos.indexOf(repo);
-                arrayOfRepos.splice(index, 1);
-                arrayOfRepos.push(testValue);
-            }
-            else {
-                arrayOfRepos.push(repo);
-            }
-        }
-
-        //var url = window.location.pathname;
-        //if (url.indexOf("/bb_net/") >= 0) {
-        //    url = url.replace("/bb_net/", "/bb_dag/") + "/&bbProj=" + currentProj + "&bbRepo=" + currentRepo + "&all=y";
-        //} else {
-        //    url = "../plugins/servlet/bb_dag" + window.location.pathname + "/&bbProj=" + currentProj + "&bbRepo=" + currentRepo;
-        //}
-        //var oReq = new XMLHttpRequest();
-        ////oReq.addEventListener("load", drawGraph);
-        //oReq.open("GET", url);
-        //oReq.send();
-
-    }
-
-}
-gsylviedavies = true;
+}(jQuery));

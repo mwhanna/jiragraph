@@ -32,12 +32,12 @@
     <web-resource key="jiragraph-resources" name="jiragraph Web Resources">
         <dependency>com.atlassian.auiplugin:ajs</dependency>
         <dependency>com.atlassian.jira.plugins.jira-development-integration-plugin:devstatus-panel-and-dialog-resources</dependency>
-        <resource type="download" name="jiragraph.css" location="/css/jiragraph.css"/>
-        <resource type="download" name="jiragraph.js" location="/js/jiragraph.js"/>
-        <resource type="download" name="images/" location="/images"/>
         <context>jiragraph</context>
         <context>jira.view.issue</context>
         <context>gh-rapid</context>
+        <resource type="download" name="jiragraph.css" location="/css/jiragraph.css"/>
+        <resource type="download" name="jiragraph.js" location="/js/jiragraph.js"/>
+        <resource type="download" name="images/" location="/images"/>
     </web-resource>
 
 </atlassian-plugin>
