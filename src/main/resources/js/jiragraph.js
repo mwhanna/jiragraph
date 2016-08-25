@@ -1,6 +1,18 @@
 (function ($) {
 
     var qs = {}; // parsed query-string
+    var jiraTicket = undefined;
+    var jiraTicketRegExp = undefined;
+    var refreshHolder = {};
+    var bbRefreshesPilingUp = 0;
+    var bbLastRefresh = Date.now() - 12345;
+    var bbCurrentRepo = undefined;
+    var bbCurrentProj = undefined;
+
+    // replaced with getData() once it's available, otherwise just a no-op.
+    refreshHolder.bbRefresh = function () {
+        console.log("OLD REFRESH");
+    };
 
     var commitRegex = /reverts commit ([A-Fa-f0-9]{40})/g;
     var svgNS = "http://www.w3.org/2000/svg";
@@ -14,13 +26,45 @@
         var scrollX = Number(window.scrollX || window.pageXOffset || 0);
         var scrollY = Number(window.scrollY || window.pageYOffset || 0);
         return el && {
-                left: (el.left + scrollX),
-                top: (el.top + scrollY)
+                left: (el.left),
+                top: (el.top)
             };
     }
 
+    function clear(svgHolder, doIt) {
+        var tblData = document.getElementById('commits-table');
+        while (tblData && tblData.firstChild) {
+            tblData.removeChild(tblData.firstChild);
+        }
 
-    function redrawSvg() {
+        if (svgHolder) {
+            svgHolder.commitsList.length = 0;
+            for (k in svgHolder.reverts) {
+                delete svgHolder.reverts[k];
+            }
+        }
+
+        if (doIt) {
+            for (var k in doIt.commitsTable) {
+                delete doIt.commitsTable[k];
+            }
+        }
+    }
+
+    function redrawSvg(json) {
+        var loadingTbl = document.getElementById('bit-booster-loading');
+        if (loadingTbl) {
+            loadingTbl.parentNode.removeChild(loadingTbl);
+        }
+
+        var pre = document.createElement("pre");
+        pre.style.display = "none";
+        pre.style.position = "fixed";
+        pre.style.top = "500px";
+        pre.style.left = "500px";
+        pre.style.zIndex = "999";
+        pre.style.whiteSpace = "pre-line";
+
         var svg = document.createElementNS(svgNS, "svg");
         var now = Math.floor((new Date).getTime() / 1000);
         svg.setAttribute("now", now);
@@ -54,9 +98,10 @@
         defs.appendChild(lg);
         svg.appendChild(defs);
 
+        var devStatusPanel = document.getElementById("viewissue-devstatus-panel");
         var tbl = document.getElementById("bit-booster-tbl");
         if (!tbl) {
-            var div = document.getElementById("viewissue-devstatus-panel");
+            var div = devStatusPanel;
             var nl = div.childNodes;
             for (var i = 0; i < nl.length; i++) {
                 if (nl.item(i).className === 'mod-content') {
@@ -66,27 +111,44 @@
             }
 
             tbl = document.createElement('table');
+            tbl.setAttribute('cellspacing', 0);
+            tbl.setAttribute('cellpadding', 0);
             tbl.id = "bit-booster-tbl";
-            tbl.style.width = "100%";
             var tr = tbl.insertRow();
             var tdTop = tr.insertCell();
             tdTop.setAttribute("colspan", 3);
-            tdTop.id = 'bb-tdTop';
+            tdTop.id = 'bbtdTop';
+
+            if (json && json.err) {
+                var bbErr = document.getElementById('bbErr');
+                if (!bbErr) {
+                    var errRow = tbl.insertRow();
+                    bbErr = errRow.insertCell();
+                    bbErr.id = 'bbErr';
+                    bbErr.setAttribute("colspan", "3");
+                    bbErr.style = 'color: red';
+                }
+                bbErr.textContent = json.err;
+            }
+
             tr = tbl.insertRow();
             var tdL = tr.insertCell();
+            tdL.id = "bbtdL";
             var tdR = tr.insertCell();
+            tdR.id = "bbtdR";
             var tdZ = tr.insertCell();
+            tdZ.id = "bbtdZ";
+            tdZ.textContent = '\xa0';
             tdL.style.verticalAlign = "top";
-            tdL.style.width = "1%";
-            tdR.style.width = "1%";
             tdR.style.verticalAlign = "top";
-            tdZ.style.width = "98%";
             div.insertBefore(tbl, div.firstChild);
             tdL.appendChild(svg);
             svgHolder.tdL = tdL;
             svgHolder.tdR = tdR;
 
             var tblData = document.createElement('table');
+            tblData.setAttribute('cellspacing', 0);
+            tblData.setAttribute('cellpadding', 0);
             tblData.id = "commits-table";
             tdR.appendChild(tblData);
 
@@ -99,24 +161,28 @@
             svgHolder.tdL.appendChild(svg);
         }
 
+        var bbPre = document.getElementById("bbPre");
+        if (!bbPre) {
+            devStatusPanel.appendChild(pre);
+            pre.id = "bbPre";
+        }
+
         var bbGraphControl = document.getElementById("bbGraphControl");
-        if (qs['jira']) {
-            if (!bbGraphControl) {
-                var isCondensed = qs['grep'] === 'true';
-                var d = document.createElement('div');
-                d.id = 'bbGraphControl';
-                if (isCondensed) {
-                    var expandUrl = window.location.href.replace('grep=true', 'grep=false');
-                    d.innerHTML = '<u>condense</u>&nbsp;|&nbsp;<a href=' + expandUrl + '>expand</a>';
-                } else {
-                    var shrinkUrl = window.location.href.replace('grep=false', 'grep=true');
-                    d.innerHTML = '<a href=' + shrinkUrl + '>condense</a>&nbsp;|&nbsp;<u>expand</u>';
-                }
-                bbGraphControl = d;
-            } else {
-                bbGraphControl.parentNode.removeChild(bbGraphControl);
-            }
-            svgHolder.tdL.appendChild(bbGraphControl);
+        if (!bbGraphControl) {
+            var bbControlRow = tbl.insertRow();
+            bbGraphControl = bbControlRow.insertCell();
+            bbGraphControl.id = 'bbGraphControl';
+            var bbRepo = json.currentRepo.repo;
+            var bbProj = json.currentRepo.proj;
+            var shrinkUrl = json.bitbucket + '/plugins/servlet/bb_net/projects/' + bbProj + '/repos/' + bbRepo + '/commits?bb=Hpdhrt&fromJira=y&grep=false&jira=' + jiraTicket;
+            bbGraphControl.innerHTML = '<a href=' + shrinkUrl + '>View full graph</a>';
+            var bbPoweredBy = bbControlRow.insertCell();
+            bbPoweredBy.setAttribute("colspan", "2");
+            bbPoweredBy.id = 'bbPoweredBy';
+            bbPoweredBy.innerHTML = "Powered by <a href='https://marketplace.atlassian.com/plugins/com.bit-booster.bb.jira/server/overview'>Bit-Booster</a>";
+        } else {
+            shrinkUrl = window.location.href.replace('grep=false', 'grep=true');
+            bbGraphControl.innerHTML = '<a href=' + shrinkUrl + '>View full graph</a>';
         }
     }
 
@@ -441,7 +507,7 @@
 
                 var width = svg.getAttribute("width");
                 if (width < pos[0]) {
-                    svg.setAttribute("width", pos[0] + 10);
+                    svg.setAttribute("width", Math.ceil(pos[0] + 7) + "");
                 }
             }
 
@@ -478,7 +544,6 @@
                 rect.setAttribute("stroke", "none");
                 rect.setAttribute("stroke-width", 0);
                 rect.setAttribute("fill", "transparent");
-                svg.appendChild(rect);
 
                 var circle = document.createElementNS(svgNS, "circle");
                 circle.id = "C_" + my.sha1;
@@ -491,11 +556,6 @@
                     circle.setAttribute("fill", !my.revert ? "black" : (my.revert === 1 ? "red" : "orange"));
                 }
                 circle.setAttribute("stroke", "none");
-
-                svg.appendChild(circle);
-
-                jqueryEnterAndLeave(rect);
-                jqueryEnterAndLeave(circle);
 
                 if (my.revert) {
                     var c1 = [pos[0] - 6, pos[1] - 6];
@@ -532,27 +592,35 @@
                     }
                 }
 
+
+                svg.appendChild(rect); // append it after the tags/branches so hover works
+                svg.appendChild(circle);
+                jqueryEnterAndLeave(svg, rect);
+                jqueryEnterAndLeave(svg, circle);
+
                 if (width < pos[0]) {
-                    svg.setAttribute("width", pos[0] + 10);
+                    svg.setAttribute("width", Math.ceil(pos[0] + 7) + "");
                 }
                 if (height < pos[1]) {
                     svg.setAttribute("height", pos[1] + 10);
                 }
             }
 
-            function jqueryEnterAndLeave(svgObj) {
+            function jqueryEnterAndLeave(svg, svgObj) {
                 $(svgObj).mouseenter(function () {
                     sha = this.id.substring(2);
-                    $("#T_" + sha).addClass("commitHover");
+                    var hit = $("#T_" + sha).addClass("commitHover");
+                    drawCommitHover(hit[0], svg, me);
                 }).mouseleave(function () {
+                    document.getElementById("bbPre").style.display = "none";
                     sha = this.id.substring(2);
                     $("#T_" + sha).removeClass("commitHover");
                 });
             }
 
             function truncateBranch(branch) {
-                if (branch.length > 27) {
-                    return branch.substr(0, 24) + "...";
+                if (branch.length > 19) {
+                    return branch.substr(0, 16) + "...";
                 } else {
                     return branch;
                 }
@@ -586,11 +654,12 @@
                 text.setAttribute("y", pos[1] + 3);
                 text.setAttribute("font-size", "12px");
                 text.textContent = truncateBranch(objs[0]);
-                var links = [];
-                links.push(document.createElementNS(svgNS, "a"));
-                links[0].setAttributeNS(xlinkNS, "href", target + "until=" + objs[0]);
-                links[0].setAttributeNS(xlinkNS, "title", objs[0]);
-                links[0].appendChild(text);
+
+                var links = [text];
+                // links.push(document.createElementNS(svgNS, "a"));
+                // links[0].setAttributeNS(xlinkNS, "href", target + "until=" + objs[0]);
+                // links[0].setAttributeNS(xlinkNS, "title", objs[0]);
+                // links[0].appendChild(text);
                 svg.appendChild(links[0]);
 
                 if (isTag && !my.tagBox1) {
@@ -625,17 +694,21 @@
                     text.setAttribute("x", pos[0] + 12 + box.width);
                     text.setAttribute("y", pos[1] + 3);
                     text.setAttribute("font-size", "12px");
-                    links.push(document.createElementNS(svgNS, "a"));
+
+                    // links.push(document.createElementNS(svgNS, "a"));
                     if (objs.length == 2) {
                         text.textContent = truncateBranch(objs[1]);
-                        links[1].setAttributeNS(xlinkNS, "href", target + "until=" + objs[1]);
-                        links[1].setAttributeNS(xlinkNS, "title", objs[1]);
+                        // links[1].setAttributeNS(xlinkNS, "href", target + "until=" + objs[1]);
+                        // links[1].setAttributeNS(xlinkNS, "title", objs[1]);
                     } else {
                         text.textContent = '[' + (objs.length - 1) + " more " + (isTag ? "tags" : "branches") + "]";
-                        links[1].setAttribute("class", "noUnderline");
-                        links[1].setAttributeNS(xlinkNS, "title", objs.slice(1).join(", "));
+                        // links[1].setAttribute("class", "noUnderline");
+                        // links[1].setAttributeNS(xlinkNS, "title", objs.slice(1).join(", "));
                     }
-                    links[1].appendChild(text);
+                    // links[1].appendChild(text);
+
+                    links[1] = text; // let's not be clickable for now...
+
                     svg.appendChild(links[1]);
 
                     if (isTag && !my.tagBox2) {
@@ -688,7 +761,7 @@
                 svg.appendChild(icon);
 
                 if (width < pos[0] + 25 + box.width) {
-                    svg.setAttribute("width", pos[0] + box.width + 30);
+                    svg.setAttribute("width", Math.ceil(pos[0] + box.width + 27) + "");
                     width = pos[0] + box.width + 30;
                 }
                 return {domNode: links[0], boxWidth: box.width};
@@ -714,7 +787,7 @@
             return [uniq(tags), uniq(branches)];
         }
 
-        function g(data) {
+        function g(json) {
 
             function extractIds(s) {
                 function reverse(s) {
@@ -738,46 +811,126 @@
                 return uniq(matches);
             }
 
-            var lines = JSON.parse(data);
-            var repos = lines.repos;
-            var currentRepo = lines.currentRepo.repo;
-            var currentProj = lines.currentRepo.proj;
+            var repos = json.repos;
+            var reposCount = {};
+            for (i = 0; i < repos.length; i++) {
+                var r = repos[i].repo;
+                if (reposCount[r]) {
+                    reposCount[r]++;
+                } else {
+                    reposCount[r] = 1;
+                }
+            }
 
-            var bbTdTop = document.getElementById('bb-tdTop');
+
+            var currentRepo = json.currentRepo.repo;
+            var currentProj = json.currentRepo.proj;
+            var bbTdTop = document.getElementById('bbtdTop');
             while (bbTdTop.firstChild) {
                 bbTdTop.removeChild(bbTdTop.firstChild);
             }
             var tbl = document.createElement("table");
+            tbl.setAttribute("cellspacing", 0);
+            tbl.setAttribute("cellpadding", 0);
             var topTr = tbl.insertRow();
-            for (i = 0; i < repos.length; i++) {
-                var r = repos[i];
+            var leftCell = topTr.insertCell();
+            leftCell.className = 'bbBottom'
+            leftCell.textContent = ' ';
+
+            function drawTab(r) {
                 var topCell = topTr.insertCell();
-                topCell.textContent = r.repo + ' (' + r.hits + ')';
+                if (r.repo === currentRepo && r.proj === currentProj) {
+                    topCell.className = 'selected';
+                } else {
+                    topCell.onclick = function () {
+                        refreshHolder.bbRefresh(r.proj, r.repo);
+                        return false;
+                    };
+                }
+                var rCount = reposCount[r.repo];
+                var rContent = r.repo + ' (' + r.hits + ')';
+                if (rCount > 1) {
+                    topCell.innerHTML = r.proj + '/<br/>' + rContent;
+                } else {
+                    topCell.textContent = rContent;
+                }
             }
+
+            function addOption(select, r) {
+                var option = document.createElement('option');
+                if (r.repo === currentRepo && r.proj === currentProj) {
+                    option.setAttribute('selected', 'selected');
+                    option.className = 'selected';
+
+                    $(select).addClass('selected');
+                    $(select.parentNode).addClass('selected');
+                }
+
+                var rCount = reposCount[r.repo];
+                var rContent = r.repo + ' (' + r.hits + ')';
+                if (rCount > 1) {
+                    rContent = r.proj + '/' + rContent;
+                }
+                option.setAttribute('value', rContent);
+                option.setAttribute('bbProj', r.proj);
+                option.setAttribute('bbRepo', r.repo);
+                option.textContent = rContent;
+                select.appendChild(option);
+            }
+
+            for (i = 0; i < Math.min(2, repos.length); i++) {
+                drawTab(repos[i]);
+            }
+            if (repos.length == 3) {
+                drawTab(repos[2]);
+            } else if (repos.length > 3) {
+                var topCell = topTr.insertCell();
+                topCell.className = 'bbSelect';
+                var select = document.createElement('select');
+                topCell.appendChild(select);
+                var option = document.createElement('option');
+                option.setAttribute('value', '');
+                option.textContent = 'More...';
+                select.appendChild(option);
+                select.onchange = function () {
+                    var x = select.selectedIndex;
+                    var selectedOption = select.options[x];
+                    selectedOption.className = 'selected';
+                    select.selectedIndex = 0;
+                    var proj = undefined;
+                    var repo = undefined;
+                    if (selectedOption.hasAttribute('bbProj')) {
+                        var proj = selectedOption.getAttribute('bbProj');
+                        var repo = selectedOption.getAttribute('bbRepo');
+                    }
+                    refreshHolder.bbRefresh(proj, repo);
+                    select.selectedIndex = x;
+                    return false;
+                };
+
+                for (i = 2; i < repos.length; i++) {
+                    addOption(select, repos[i]);
+                }
+            }
+
+            var rightCell = topTr.insertCell();
+            rightCell.className = 'bbBottom';
+            rightCell.textContent = ' ';
             bbTdTop.appendChild(tbl);
 
+            clear(svgHolder, doIt);
 
-            function clear() {
-                var tblData = document.getElementById('commits-table');
-                while (tblData.firstChild) {
-                    tblData.removeChild(tblData.firstChild);
-                }
+            var jira = json.jira;
+            var lines = json.lines;
+            var now = Math.floor((new Date).getTime() / 1000);
 
-                svgHolder.commitsList.length = 0;
-                for (var k in doIt.commitsTable) {
-                    delete doIt.commitsTable[k];
-                }
-                for (k in svgHolder.reverts) {
-                    delete svgHolder.reverts[k];
+            // Add the divider line if we have valid graph data.
+            if (lines.length > 0) {
+                var d = document.getElementById('devstatus-container');
+                if (d.className.indexOf('bbTop') < 0) {
+                    $(d).addClass('bbTop');
                 }
             }
-
-            clear();
-
-
-            var jira = lines['jira'];
-            lines = lines['lines'];
-            var now = Math.floor((new Date).getTime() / 1000);
             for (var i = 0; i < lines.length; i++) {
                 var line = lines[i];
                 var sha1 = line[2];
@@ -789,7 +942,15 @@
                 var tr = tblData.insertRow();
                 tr.id = 'T_' + sha1;
                 tr.setAttribute('data-commitid', sha1);
+
+                // Authors
                 var td = tr.insertCell();
+                td.textContent = line[5];
+                td.className = 'bbAuthor';
+
+                // Dates
+                td = tr.insertCell();
+                td.className = 'bbTime';
                 var time = document.createElement('time');
                 var unixTime = Number(line[0]);
                 var date = new Date(unixTime * 1000);
@@ -803,7 +964,6 @@
                 if (now - unixTime < 60 * 60 * 24 * 7) {
                     dateShort = line[1];
                 }
-                time.setAttribute("title", dateLong);
                 time.setAttribute("datetime", dateRfc);
                 time.textContent = dateShort;
                 td.appendChild(time);
@@ -818,8 +978,15 @@
                     y: 8 + offset.top - svgPos.top,
                     row: commitsList.length,
                     col: 0,
-                    htmlElement: time
+                    htmlElement: time,
+                    author: line[5],
+                    msg: line[6],
+                    bbMatch: line.length > 7 && line[7],
+                    date: dateLong
                 };
+
+                var tkt = 'AUI-4224';
+                c.msg = c.msg.replace(new RegExp(tkt, 'g'), "<b>" + tkt + "</b>");
 
                 commitsList.push(c);
                 commitsTable[c.sha1] = c;
@@ -831,9 +998,6 @@
                     c.tags = tagsAndBranches[0];
                     c.branches = tagsAndBranches[1];
                 }
-                if (line.length > 7) {
-                    c.bbMatch = line[7];
-                }
 
                 var row = document.getElementById("T_" + sha1);
                 if (c) {
@@ -841,15 +1005,18 @@
                         var svg = document.getElementById("bit-booster");
                         var sha = this.getAttribute("data-commitid");
                         if (sha) {
-                            var c = svg.getElementById("C_" + sha);
-                            c.setAttribute("class", "commitHover");
+                            var circle = svg.getElementById("C_" + sha);
+                            circle.setAttribute("class", "commitHover");
+                            var c = commitsTable[sha];
+                            drawCommitHover(this, svg, c);
                         }
                     }).mouseleave(function () {
+                        document.getElementById("bbPre").style.display = "none";
                         var svg = document.getElementById("bit-booster");
                         var sha = this.getAttribute("data-commitid");
                         if (sha) {
-                            var c = svg.getElementById("C_" + sha);
-                            c.removeAttribute("class");
+                            var circle = svg.getElementById("C_" + sha);
+                            circle.removeAttribute("class");
                         }
                     });
                 }
@@ -973,13 +1140,31 @@
         return doIt;
     }
 
+    function drawCommitHover(hit, svg, c) {
+        var hitOffset = getOffset(hit);
+        var svgOffset = getOffset(svg);
+        var left = svgOffset.left;
+        var top = hitOffset.top;
+        var bbPre = document.getElementById("bbPre");
+        top = (Math.round(top - 5)) + "px";
+        left = (Math.round(left) - 403) + "px";
+        if (bbPre) {
+            bbPre.style.display = "block";
+            bbPre.style.top = top;
+            bbPre.style.left = left;
+
+            var preText = 'Id: ' + c.sha1 + '\nDate: ' + c.date + '\nAuthor: ' + c.author;
+            if (c.tags) {
+                preText += '\nTags: ' + c.tags;
+            }
+            bbPre.innerHTML = preText + '\n\n' + c.msg;
+        }
+    }
+
     window.addEventListener("load", function load(event) {
             window.removeEventListener("load", load);
 
-            console.log("about to require...");
             require(['jira/devstatus/dev-status-module'], function (devStatusModule) {
-                console.log("REQUIRED! YAY!");
-
                 var doIt = f(event);
 
                 function firstCommitWithN() {
@@ -987,15 +1172,17 @@
                 }
 
                 function drawGraph() {
+                    bbRefreshesPilingUp = 0;
                     doIt();
                     var svg = document.getElementById("bit-booster");
                     if (svg) {
                         svg.parentNode.removeChild(svg);
                     }
-                    redrawSvg();
-                    svg = svgHolder.svg;
 
                     if (this.responseText.indexOf("bit-booster plugin requires a license") >= 0) {
+                        redrawSvg();
+                        svg = svgHolder.svg;
+
                         var expired = document.getElementById("bit-booster-expired");
                         if (!expired) {
                             var a = document.createElement("a");
@@ -1012,37 +1199,92 @@
                             parent.insertBefore(a, svg);
                         }
                     } else {
-                        doIt.g(this.responseText);
+                        var json = JSON.parse(this.responseText);
+                        redrawSvg(json);
+                        doIt.g(json);
                     }
                 }
 
-                function getData() {
+                function getData(proj, repo) {
+                    if (proj && repo) {
+                        bbCurrentProj = proj;
+                        bbCurrentRepo = repo;
+                    }
                     var commitToFetch = firstCommitWithN();
                     if (commitToFetch) {
+
+                        var tbl = document.getElementById('bit-booster-tbl');
+                        if (tbl) {
+                            var parent = tbl.parentNode;
+                            parent.removeChild(tbl);
+                            tbl = document.createElement("table");
+                            tbl.id = "bit-booster-loading";
+                            tbl.style.width = "100%";
+                            var row = tbl.insertRow();
+                            var cell = row.insertCell();
+                            cell.style.paddingTop = "33px";
+                            cell.style.paddingBottom = "33px";
+                            cell.style.textAlign = "center";
+                            cell.style.fontWeight = "bold";
+                            cell.textContent = "Loading...";
+                            parent.insertBefore(tbl, parent.firstChild);
+                        }
+
+                        jiraTicket = JIRA.Issue.getIssueKey();
+                        jiraTicketRegExp = new RegExp(jiraTicket, 'g');
                         var url = window.location.pathname;
-                        url = "/jira/plugins/servlet/bb_dag" + window.location.pathname + "/" + commitToFetch;
+                        url = "/jira/plugins/servlet/bb_dag" + window.location.pathname + "/?jira=" + jiraTicket;
+                        if (bbCurrentProj) {
+                            url += '&bbProj=' + bbCurrentProj;
+                        }
+                        if (bbCurrentRepo) {
+                            url += '&bbRepo=' + bbCurrentRepo;
+                        }
                         var oReq = new XMLHttpRequest();
-                        oReq.addEventListener("load", drawGraph);
-                        oReq.open("GET", url);
-                        oReq.send();
+                        var now = Date.now();
+                        var sinceLastRefresh = now - bbLastRefresh;
+                        if (sinceLastRefresh > 500) {
+                            bbLastRefresh = now;
+                            setTimeout(function () {
+                                oReq.addEventListener("load", drawGraph);
+                                oReq.open("GET", url);
+                                oReq.send();
+                            }, 2000);
+                        } else {
+                            // console.log("NOT DOING REFRESH: " + sinceLastRefresh);
+                        }
                     }
                 }
+
+                refreshHolder.bbRefresh = getData;
 
                 var checkExist = setInterval(function () {
                     if ($('#viewissue-devstatus-panel').length) {
                         clearInterval(checkExist);
-                        getData();
+
+                        var Events = require('jira/util/events');
+                        var Types = require('jira/util/events/types');
+                        var _ = require('underscore');
+
+                        Events.bind(Types.NEW_CONTENT_ADDED, _.bind(function (e) {
+                            if (bbRefreshesPilingUp === 0) {
+                                bbRefreshesPilingUp = 1;
+                                setTimeout(refreshHolder.bbRefresh, 500);
+                            }
+                        }, this));
+                        Events.bind("GH.DetailView.updated", _.bind(function (e) {
+                            if (bbRefreshesPilingUp === 0) {
+                                bbRefreshesPilingUp = 1;
+                                setTimeout(refreshHolder.bbRefresh, 500);
+                            }
+                        }, this));
+
+                        refreshHolder.bbRefresh();
                         var x = JIRA.DevStatus.devStatusModule;
                         var devStatus = JIRA.DevStatus.devStatusModule.devStatusData;
 
-                        console.log("LOOKING AT x:");
-                        console.log(x);
-                        console.log("LOOKING AT devStatusModule:");
-                        console.log(devStatusModule);
-
                         devStatus.on("beforeRequest", function () {
-                            console.log("JIRAGRAPH WUZ HERE BEFOREREQUEST!");
-                            getData();
+                            refreshHolder.bbRefresh();
                         });
                     }
                 }, 166);

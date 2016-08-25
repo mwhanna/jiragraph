@@ -2,6 +2,21 @@
 #bit-booster {
 }
 
+#bbPre { padding: 3px; color: white; background-color: rgba(51, 51, 51, 0.90); border-radius: 3px; border: 0px solid white; width: 400px; }
+#bbPre b { background-color: red; }
+
+#bit-booster-tbl #bbPoweredBy { font-size: 77%; text-align: center; vertical-align: bottom; font-style: italic; color: gray; }
+#bit-booster-tbl #bbPoweredBy a { color: #6699ff; }
+#bit-booster-tbl #bbErr { padding: 6px 0 0 0; }
+#bit-booster-tbl #bbGraphControl { width: 1px; }
+
+#bit-booster-tbl, #bit-booster-tbl > tbody > tr > td, #bit-booster-tbl table { border: 0; margin: 0; padding: 0; }
+
+#bit-booster-tbl #bbtdL { width: 1px; }
+#bit-booster-tbl #bbtdR { width: 1px; }
+
+#devstatus-container.bbTop { border-top: 1px solid #dddddd; padding-top: 7px; margin-top: 7px; }
+
 circle:hover, rect:hover + circle, circle.commitHover {
     r: 5;
     fill: black;
@@ -9,14 +24,27 @@ circle:hover, rect:hover + circle, circle.commitHover {
     stroke-width: 3;
 }
 
-#commits-table tr td {
-    padding: 4px 0;
-}
-
-#commits-table time {
-    white-space: nowrap;
-}
+#commits-table { width : 100%; }
+#commits-table .bbAuthor { width: 1px; }
+#commits-table tr td { padding: 4px 0; white-space: nowrap; }
+#commits-table tr td.bbAuthor { padding-right: 0.85em; }
+#commits-table tr td time { color: #707070; }
 
 #commits-table tr:hover, #commits-table tr.commitHover {
     background: #f5f5f5;
 }
+
+#bbtdTop table { border: 0; border-spacing: 0; margin: 0; padding: 0; font-size: 9pt; }
+#bbtdTop table td { border: 1px solid #cccccc; background-color: #eeeeee; padding: 4px 8px; white-space: nowrap; text-align: center; }
+#bbtdTop table td select, #bb-tdTop table td select option { border: 0; margin: 0; padding: 0; background-color: #eeeeee; font-size: 9pt; }
+
+#bbtdTop table td.bbSelect { padding: 0; margin: 0; }
+#bbtdTop table td select { padding: 4px 8px; margin: 0; }
+
+#bbtdTop table td:hover { background-color: #e6e6e6; cursor: pointer; }
+#bbtdTop table td.selected { border-bottom: 0; background-color: #ffffff; font-weight: bold; cursor: auto; }
+#bbtdTop table td.selected select, #bb-tdTop table td.selected select option.selected { font-weight: bold; background-color: #ffffff; }
+#bbtdTop table td.selected option { background-color: #ffffff; }
+
+#bbtdTop table td.bbBottom { border: 0; border-bottom: 1px solid #cccccc; background-color: #ffffff; padding: 4px 8px }
+
