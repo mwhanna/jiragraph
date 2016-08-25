@@ -15,7 +15,7 @@ import com.atlassian.applinks.api.ApplicationLinkRequest;
 import com.atlassian.applinks.api.ApplicationLinkRequestFactory;
 import com.atlassian.applinks.api.ApplicationLinkService;
 import com.atlassian.applinks.api.CredentialsRequiredException;
-import com.atlassian.applinks.api.application.bitbucket.BitbucketApplicationType;
+import com.atlassian.applinks.api.application.stash.StashApplicationType;
 import com.atlassian.plugin.spring.scanner.annotation.export.ExportAsService;
 import com.atlassian.plugin.spring.scanner.annotation.imports.ComponentImport;
 import com.atlassian.sal.api.net.Request;
@@ -27,7 +27,7 @@ import com.atlassian.sal.api.net.ResponseException;
 public class CommitsServlet extends HttpServlet
 {
 
-	private final boolean DEBUG_MODE = true;
+	private final boolean DEBUG_MODE = false;
 
 	@ComponentImport
 	private final ApplicationLinkService applicationLinkService;
@@ -43,7 +43,7 @@ public class CommitsServlet extends HttpServlet
 	{
 		final String bbProj = req.getParameter( "bbProj" );
 		final String bbRepo = req.getParameter( "bbRepo" );
-		ApplicationLink link = applicationLinkService.getPrimaryApplicationLink( BitbucketApplicationType.class );
+		ApplicationLink link = applicationLinkService.getPrimaryApplicationLink( StashApplicationType.class );
 
 		ApplicationLinkRequestFactory fac = link.createAuthenticatedRequestFactory();
 		response.setContentType( "text/plain;charset=UTF-8" );
@@ -246,6 +246,7 @@ public class CommitsServlet extends HttpServlet
 					url += "&bbRepo=" + bbRepo;
 				}
 				ApplicationLinkRequest linkReq = fac.createRequest( Request.MethodType.GET, url );
+				System.out.println( "SENDING: " + url );
 				String result = linkReq.execute();
 				pw.write( result );
 			}

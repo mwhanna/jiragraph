@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>jiragraph</groupId>
     <artifactId>jiragraph</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.10</version>
     <organization>
         <name>Example Company</name>
         <url>http://www.example.com/</url>
@@ -158,8 +158,8 @@
         </plugins>
     </build>
     <properties>
-        <jira.version>7.1.9</jira.version>
-        <amps.version>6.2.6</amps.version>
+        <jira.version>6.1</jira.version>
+        <amps.version>5.0.4</amps.version>
         <plugin.testrunner.version>1.2.3</plugin.testrunner.version>
         <atlassian.spring.scanner.version>1.2.6</atlassian.spring.scanner.version>
         <!-- This key is used to keep the consistency between the key in atlassian-plugin.xml and the key to generate bundle. -->

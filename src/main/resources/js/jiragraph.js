@@ -1,13 +1,16 @@
 (function ($) {
 
+    // console.log("jQuery version: " + $.fn.jquery);
+
     var qs = {}; // parsed query-string
+    var jiraBase = undefined;
     var jiraTicket = undefined;
     var jiraTicketRegExp = undefined;
     var refreshHolder = {};
     var bbRefreshesPilingUp = 0;
     var bbLastRefresh = Date.now() - 12345;
-    var bbCurrentRepo = undefined;
     var bbCurrentProj = undefined;
+    var bbCurrentRepo = undefined;
 
     // replaced with getData() once it's available, otherwise just a no-op.
     refreshHolder.bbRefresh = function () {
@@ -29,6 +32,50 @@
                 left: (el.left),
                 top: (el.top)
             };
+    }
+
+    function clearChildren(nl) {
+        if (nl && nl.length) {
+            for (var i = 0; i < nl.length; i++) {
+                var n = nl.item(i);
+                while (n && n.lastChild) {
+                    n.removeChild(n.lastChild);
+                }
+            }
+        } else if (nl) {
+            n = nl;
+            while (n && n.lastChild) {
+                n.removeChild(n.lastChild);
+            }
+        }
+    }
+
+
+    function tabClick(proj, repo, clicked) {
+        var svg = document.getElementById('bit-booster');
+        clearChildren(svg);
+        var tbl = document.getElementById('commits-table');
+        if (tbl) {
+            clearChildren(tbl.getElementsByTagName('th'));
+            clearChildren(tbl.getElementsByTagName('td'));
+        }
+
+        var nl = tbl.getElementsByTagName('td');
+        var td = nl.item(0);
+        tbl.className = 'bbNoBorder';
+        td.textContent = "Loading...";
+
+        // Clear selected tabs.
+        td = document.getElementById('bbtdTop');
+        nl = td.getElementsByTagName('td');
+        for (var i = 0; i < nl.length; i++) {
+            var n = nl.item(i);
+            if (n !== clicked) {
+                $(n).removeClass('selected');
+            }
+        }
+        $(clicked).addClass('selected');
+        refreshHolder.bbRefresh(proj, repo);
     }
 
     function clear(svgHolder, doIt) {
@@ -63,7 +110,6 @@
         pre.style.top = "500px";
         pre.style.left = "500px";
         pre.style.zIndex = "999";
-        pre.style.whiteSpace = "pre-line";
 
         var svg = document.createElementNS(svgNS, "svg");
         var now = Math.floor((new Date).getTime() / 1000);
@@ -151,7 +197,6 @@
             tblData.setAttribute('cellpadding', 0);
             tblData.id = "commits-table";
             tdR.appendChild(tblData);
-
         } else {
             if (!svgHolder.tdL) {
                 var cells = tbl.getElementsByTagName("td");
@@ -167,22 +212,20 @@
             pre.id = "bbPre";
         }
 
+        var unshrinkUrl = json.bitbucket + '/plugins/servlet/bb_net/projects/' + bbCurrentProj + '/repos/' + bbCurrentRepo + '/commits?bb=Hpdhrt&fromJira=y&grep=false&jira=' + jiraTicket;
         var bbGraphControl = document.getElementById("bbGraphControl");
         if (!bbGraphControl) {
             var bbControlRow = tbl.insertRow();
             bbGraphControl = bbControlRow.insertCell();
             bbGraphControl.id = 'bbGraphControl';
-            var bbRepo = json.currentRepo.repo;
-            var bbProj = json.currentRepo.proj;
-            var shrinkUrl = json.bitbucket + '/plugins/servlet/bb_net/projects/' + bbProj + '/repos/' + bbRepo + '/commits?bb=Hpdhrt&fromJira=y&grep=false&jira=' + jiraTicket;
-            bbGraphControl.innerHTML = '<a href=' + shrinkUrl + '>View full graph</a>';
+            bbGraphControl.innerHTML = '<a href=' + unshrinkUrl + '>View full graph</a>';
             var bbPoweredBy = bbControlRow.insertCell();
             bbPoweredBy.setAttribute("colspan", "2");
             bbPoweredBy.id = 'bbPoweredBy';
             bbPoweredBy.innerHTML = "Powered by <a href='https://marketplace.atlassian.com/plugins/com.bit-booster.bb.jira/server/overview'>Bit-Booster</a>";
         } else {
             shrinkUrl = window.location.href.replace('grep=false', 'grep=true');
-            bbGraphControl.innerHTML = '<a href=' + shrinkUrl + '>View full graph</a>';
+            bbGraphControl.innerHTML = '<a href=' + unshrinkUrl + '>View full graph</a>';
         }
     }
 
@@ -466,8 +509,8 @@
 
             my.path = function (pos, targetRow, targetCol, targetCommit, dashed) {
 
-                if (dashed && qs['grep'] === 'true') {
-                    // The compressed graph skips unconnected merges (aka "dashed lines").
+                if (dashed === 'true') {
+                    // The JIRA compressed graph skips unconnected merges (aka "dashed lines").
                     return;
                 }
 
@@ -507,7 +550,7 @@
 
                 var width = svg.getAttribute("width");
                 if (width < pos[0]) {
-                    svg.setAttribute("width", Math.ceil(pos[0] + 7) + "");
+                    svg.setAttribute("width", Math.ceil(pos[0] + 10) + "");
                 }
             }
 
@@ -592,17 +635,16 @@
                     }
                 }
 
-
-                svg.appendChild(rect); // append it after the tags/branches so hover works
+                svg.appendChild(rect);
                 svg.appendChild(circle);
                 jqueryEnterAndLeave(svg, rect);
                 jqueryEnterAndLeave(svg, circle);
 
-                if (width < pos[0]) {
-                    svg.setAttribute("width", Math.ceil(pos[0] + 7) + "");
+                if (width - 10 < pos[0]) {
+                    svg.setAttribute("width", Math.ceil(pos[0] + 10) + "");
                 }
-                if (height < pos[1]) {
-                    svg.setAttribute("height", pos[1] + 10);
+                if (height - 25 < pos[1]) {
+                    svg.setAttribute("height", Math.ceil(pos[1] + 25) + "");
                 }
             }
 
@@ -610,7 +652,9 @@
                 $(svgObj).mouseenter(function () {
                     sha = this.id.substring(2);
                     var hit = $("#T_" + sha).addClass("commitHover");
-                    drawCommitHover(hit[0], svg, me);
+                    if (hit && hit.length > 0) {
+                        drawCommitHover(hit[0], svg, me);
+                    }
                 }).mouseleave(function () {
                     document.getElementById("bbPre").style.display = "none";
                     sha = this.id.substring(2);
@@ -761,7 +805,7 @@
                 svg.appendChild(icon);
 
                 if (width < pos[0] + 25 + box.width) {
-                    svg.setAttribute("width", Math.ceil(pos[0] + box.width + 27) + "");
+                    svg.setAttribute("width", Math.ceil(pos[0] + box.width + 30) + "");
                     width = pos[0] + box.width + 30;
                 }
                 return {domNode: links[0], boxWidth: box.width};
@@ -822,9 +866,6 @@
                 }
             }
 
-
-            var currentRepo = json.currentRepo.repo;
-            var currentProj = json.currentRepo.proj;
             var bbTdTop = document.getElementById('bbtdTop');
             while (bbTdTop.firstChild) {
                 bbTdTop.removeChild(bbTdTop.firstChild);
@@ -839,11 +880,13 @@
 
             function drawTab(r) {
                 var topCell = topTr.insertCell();
-                if (r.repo === currentRepo && r.proj === currentProj) {
+                topCell.setAttribute('bbRepo', r.repo);
+                topCell.setAttribute('bbProj', r.proj);
+                if (r.repo === bbCurrentRepo && r.proj === bbCurrentProj) {
                     topCell.className = 'selected';
                 } else {
                     topCell.onclick = function () {
-                        refreshHolder.bbRefresh(r.proj, r.repo);
+                        tabClick(r.proj, r.repo, topCell);
                         return false;
                     };
                 }
@@ -858,7 +901,7 @@
 
             function addOption(select, r) {
                 var option = document.createElement('option');
-                if (r.repo === currentRepo && r.proj === currentProj) {
+                if (r.repo === bbCurrentRepo && r.proj === bbCurrentProj) {
                     option.setAttribute('selected', 'selected');
                     option.className = 'selected';
 
@@ -903,7 +946,7 @@
                         var proj = selectedOption.getAttribute('bbProj');
                         var repo = selectedOption.getAttribute('bbRepo');
                     }
-                    refreshHolder.bbRefresh(proj, repo);
+                    tabClick(proj, repo, topCell);
                     select.selectedIndex = x;
                     return false;
                 };
@@ -920,7 +963,6 @@
 
             clear(svgHolder, doIt);
 
-            var jira = json.jira;
             var lines = json.lines;
             var now = Math.floor((new Date).getTime() / 1000);
 
@@ -931,27 +973,40 @@
                     $(d).addClass('bbTop');
                 }
             }
+
+            var tblData = document.getElementById('commits-table');
+            tblData.className = '';
+            var headerRow = tblData.insertRow();
+            var th1 = document.createElement('th');
+            var th2 = document.createElement('th');
+            th1.textContent = 'Author';
+            th2.textContent = 'Commit Date';
+            headerRow.appendChild(th1);
+            headerRow.appendChild(th2);
+
             for (var i = 0; i < lines.length; i++) {
                 var line = lines[i];
                 var sha1 = line[2];
                 var hasParents = line.length > 3 && line[3] && ("" !== line[3].trim());
                 var parents = hasParents ? line[3].trim().split(' ') : undefined;
                 var commitsList = svgHolder.commitsList;
+                var href = json.bitbucket + '/projects/' + bbCurrentProj + '/repos/' + bbCurrentRepo + '/commits/' + sha1;
 
-                var tblData = document.getElementById('commits-table');
                 var tr = tblData.insertRow();
                 tr.id = 'T_' + sha1;
                 tr.setAttribute('data-commitid', sha1);
 
                 // Authors
                 var td = tr.insertCell();
-                td.textContent = line[5];
+                td.innerHTML = "<a href='" + href + "'>" + line[5] + '</a>';
                 td.className = 'bbAuthor';
 
                 // Dates
                 td = tr.insertCell();
                 td.className = 'bbTime';
                 var time = document.createElement('time');
+                var a = document.createElement('a');
+                a.setAttribute('href', href);
                 var unixTime = Number(line[0]);
                 var date = new Date(unixTime * 1000);
                 var dateShort = date.toLocaleDateString(undefined, dateOptionsShort);
@@ -966,7 +1021,8 @@
                 }
                 time.setAttribute("datetime", dateRfc);
                 time.textContent = dateShort;
-                td.appendChild(time);
+                a.appendChild(time);
+                td.appendChild(a);
 
                 var svgPos = getOffset(svgHolder.svg);
                 var offset = getOffset(time);
@@ -985,8 +1041,9 @@
                     date: dateLong
                 };
 
-                var tkt = 'AUI-4224';
-                c.msg = c.msg.replace(new RegExp(tkt, 'g'), "<b>" + tkt + "</b>");
+                if (c.bbMatch) {
+                    c.msg = c.msg.replace(jiraTicketRegExp, "<b>" + jiraTicket + "</b>");
+                }
 
                 commitsList.push(c);
                 commitsTable[c.sha1] = c;
@@ -1006,7 +1063,9 @@
                         var sha = this.getAttribute("data-commitid");
                         if (sha) {
                             var circle = svg.getElementById("C_" + sha);
-                            circle.setAttribute("class", "commitHover");
+                            if (circle) {
+                                circle.setAttribute("class", "commitHover");
+                            }
                             var c = commitsTable[sha];
                             drawCommitHover(this, svg, c);
                         }
@@ -1016,7 +1075,9 @@
                         var sha = this.getAttribute("data-commitid");
                         if (sha) {
                             var circle = svg.getElementById("C_" + sha);
-                            circle.removeAttribute("class");
+                            if (circle) {
+                                circle.removeAttribute("class");
+                            }
                         }
                     });
                 }
@@ -1147,15 +1208,15 @@
         var top = hitOffset.top;
         var bbPre = document.getElementById("bbPre");
         top = (Math.round(top - 5)) + "px";
-        left = (Math.round(left) - 403) + "px";
+        left = (Math.round(left) - 455) + "px";
         if (bbPre) {
             bbPre.style.display = "block";
             bbPre.style.top = top;
             bbPre.style.left = left;
 
-            var preText = 'Id: ' + c.sha1 + '\nDate: ' + c.date + '\nAuthor: ' + c.author;
-            if (c.tags) {
-                preText += '\nTags: ' + c.tags;
+            var preText = 'Id:     ' + c.sha1 + '\nDate:   ' + c.date + '\nAuthor: ' + c.author;
+            if (c.tags && c.tags.length > 0) {
+                preText += '\nTags:   ' + c.tags.join(', ');
             }
             bbPre.innerHTML = preText + '\n\n' + c.msg;
         }
@@ -1164,7 +1225,7 @@
     window.addEventListener("load", function load(event) {
             window.removeEventListener("load", load);
 
-            require(['jira/devstatus/dev-status-module'], function (devStatusModule) {
+            function businessAsUsual() {
                 var doIt = f(event);
 
                 function firstCommitWithN() {
@@ -1200,6 +1261,8 @@
                         }
                     } else {
                         var json = JSON.parse(this.responseText);
+                        bbCurrentProj = json.currentRepo.proj;
+                        bbCurrentRepo = json.currentRepo.repo;
                         redrawSvg(json);
                         doIt.g(json);
                     }
@@ -1212,56 +1275,49 @@
                     }
                     var commitToFetch = firstCommitWithN();
                     if (commitToFetch) {
-
-                        var tbl = document.getElementById('bit-booster-tbl');
-                        if (tbl) {
-                            var parent = tbl.parentNode;
-                            parent.removeChild(tbl);
-                            tbl = document.createElement("table");
-                            tbl.id = "bit-booster-loading";
-                            tbl.style.width = "100%";
-                            var row = tbl.insertRow();
-                            var cell = row.insertCell();
-                            cell.style.paddingTop = "33px";
-                            cell.style.paddingBottom = "33px";
-                            cell.style.textAlign = "center";
-                            cell.style.fontWeight = "bold";
-                            cell.textContent = "Loading...";
-                            parent.insertBefore(tbl, parent.firstChild);
-                        }
-
                         jiraTicket = JIRA.Issue.getIssueKey();
                         jiraTicketRegExp = new RegExp(jiraTicket, 'g');
                         var url = window.location.pathname;
-                        url = "/jira/plugins/servlet/bb_dag" + window.location.pathname + "/?jira=" + jiraTicket;
-                        if (bbCurrentProj) {
-                            url += '&bbProj=' + bbCurrentProj;
-                        }
-                        if (bbCurrentRepo) {
-                            url += '&bbRepo=' + bbCurrentRepo;
-                        }
-                        var oReq = new XMLHttpRequest();
-                        var now = Date.now();
-                        var sinceLastRefresh = now - bbLastRefresh;
-                        if (sinceLastRefresh > 500) {
-                            bbLastRefresh = now;
-                            setTimeout(function () {
+                        AJS.$(document).ready(function () {
+                            jiraBase = AJS.params.baseURL;
+                            url = jiraBase + "/plugins/servlet/bb_dag" + window.location.pathname + "/?jira=" + jiraTicket;
+
+                            console.log("TRYING: " + url);
+
+                            if (bbCurrentProj) {
+                                url += '&bbProj=' + bbCurrentProj;
+                            }
+                            if (bbCurrentRepo) {
+                                url += '&bbRepo=' + bbCurrentRepo;
+                            }
+                            var oReq = new XMLHttpRequest();
+                            var now = Date.now();
+                            var sinceLastRefresh = now - bbLastRefresh;
+                            if (sinceLastRefresh > 500) {
+                                bbLastRefresh = now;
                                 oReq.addEventListener("load", drawGraph);
                                 oReq.open("GET", url);
                                 oReq.send();
-                            }, 2000);
-                        } else {
-                            // console.log("NOT DOING REFRESH: " + sinceLastRefresh);
-                        }
+                            } else {
+                                // console.log("NOT DOING REFRESH: " + sinceLastRefresh);
+                            }
+
+                        });
                     }
                 }
 
                 refreshHolder.bbRefresh = getData;
+            }
 
-                var checkExist = setInterval(function () {
-                    if ($('#viewissue-devstatus-panel').length) {
-                        clearInterval(checkExist);
+            var checkExist = setInterval(function () {
+                if ($('#viewissue-devstatus-panel').length) {
+                    clearInterval(checkExist);
 
+                    businessAsUsual();
+
+                    refreshHolder.bbRefresh();
+
+                    try {
                         var Events = require('jira/util/events');
                         var Types = require('jira/util/events/types');
                         var _ = require('underscore');
@@ -1278,17 +1334,31 @@
                                 setTimeout(refreshHolder.bbRefresh, 500);
                             }
                         }, this));
-
-                        refreshHolder.bbRefresh();
-                        var x = JIRA.DevStatus.devStatusModule;
-                        var devStatus = JIRA.DevStatus.devStatusModule.devStatusData;
-
-                        devStatus.on("beforeRequest", function () {
-                            refreshHolder.bbRefresh();
+                    } catch (e) {
+                        console.log("Starting Bit-Booster for JIRA without require('jira/util/events')");
+                        JIRA.bind(JIRA.Events.NEW_CONTENT_ADDED, function (e, context, reason) {
+                            if (bbRefreshesPilingUp === 0) {
+                                bbRefreshesPilingUp = 1;
+                                setTimeout(refreshHolder.bbRefresh, 500);
+                            }
                         });
                     }
-                }, 166);
-            });
+
+                    var x = JIRA.DevStatus && JIRA.DevStatus.devStatusModule;
+                    var devStatus = x && x.devStatusData;
+                    if (devStatus) {
+                        console.log("DEV STATUS!!!");
+                        devStatus.on("beforeRequest", function () {
+                            if (bbRefreshesPilingUp === 0) {
+                                bbRefreshesPilingUp = 1;
+                                setTimeout(refreshHolder.bbRefresh, 500);
+                            }
+                        });
+                    }
+
+                    console.log("PANEL IS READY!");
+                }
+            }, 166);
         },
         false
     );

@@ -1,14 +1,37 @@
 
+/*
+   * Icon Font
+   * - use when you need to change the colour of the icon via CSS - eg on hover or to match Look and Feel customisations
+   *
+   * Ranges
+   *
+   * UTF+E001 - UTF+E3FF - Global
+   * UTF+E400 - UTF+E7FF - Conf
+   * UTF+E800 - UTF+EBFF - JIRA
+   * UTF+EC00 - UTF+EFFF - Dev Tools
+   */
+@font-face {
+    font-family: "Atlassian Icons";
+    src: url(http://aui-cdn.atlassian.com/aui-adg/5.9.6/css/fonts/atlassian-icons.eot);
+    src: url(http://aui-cdn.atlassian.com/aui-adg/5.9.6/css/fonts/atlassian-icons.eot?#iefix) format("embedded-opentype"), url(http://aui-cdn.atlassian.com/aui-adg/5.9.6/css/fonts/atlassian-icons.woff) format("woff"), url(http://aui-cdn.atlassian.com/aui-adg/5.9.6/css/fonts/atlassian-icons.ttf) format("truetype"), url(http://aui-cdn.atlassian.com/aui-adg/5.9.6/css/fonts/atlassian-icons.svg#atlassian-icons) format("svg");
+    font-weight: normal;
+    font-style: normal;
+}
+
 #bit-booster {
 }
 
-#bbPre { padding: 3px; color: white; background-color: rgba(51, 51, 51, 0.90); border-radius: 3px; border: 0px solid white; width: 400px; }
+#bbPre {
+    white-space: pre-wrap; padding: 3px; color: white;
+    background-color: rgba(51, 51, 51, 0.90); border-radius: 3px; border: 0px solid white;
+    width: 450px;
+}
 #bbPre b { background-color: red; }
 
-#bit-booster-tbl #bbPoweredBy { font-size: 77%; text-align: center; vertical-align: bottom; font-style: italic; color: gray; }
+#bit-booster-tbl #bbPoweredBy { font-size: 77%; vertical-align: bottom; font-style: italic; color: gray; padding-bottom: 3px; }
 #bit-booster-tbl #bbPoweredBy a { color: #6699ff; }
-#bit-booster-tbl #bbErr { padding: 6px 0 0 0; }
-#bit-booster-tbl #bbGraphControl { width: 1px; }
+#bit-booster-tbl #bbErr { padding: 9px 0 2px 0; }
+#bit-booster-tbl #bbGraphControl { width: 1px; padding-top: 7px; white-space: nowrap; padding-right: 12px; }
 
 #bit-booster-tbl, #bit-booster-tbl > tbody > tr > td, #bit-booster-tbl table { border: 0; margin: 0; padding: 0; }
 
@@ -17,18 +40,23 @@
 
 #devstatus-container.bbTop { border-top: 1px solid #dddddd; padding-top: 7px; margin-top: 7px; }
 
-circle:hover, rect:hover + circle, circle.commitHover {
+#bit-booster, #bit-booster * { pointer-events: none; }
+#bit-booster circle, #bit-booster rect { pointer-events: auto; }
+#bit-booster circle:hover, #bit-booster rect:hover + circle, #bit-booster circle.commitHover {
     r: 5;
     fill: black;
     stroke: black;
     stroke-width: 3;
 }
 
+
 #commits-table { width : 100%; }
+#commits-table.bbNoBorder td { border-top: 0; }
 #commits-table .bbAuthor { width: 1px; }
-#commits-table tr td { padding: 4px 0; white-space: nowrap; }
+#commits-table tr th { padding: 5px 0; padding-top: 7px; white-space: nowrap; text-align: left; }
+#commits-table tr td { padding: 5px 0; white-space: nowrap; border-top: #cccccc 1px solid; }
 #commits-table tr td.bbAuthor { padding-right: 0.85em; }
-#commits-table tr td time { color: #707070; }
+#commits-table tr td a { color: #707070; }
 
 #commits-table tr:hover, #commits-table tr.commitHover {
     background: #f5f5f5;

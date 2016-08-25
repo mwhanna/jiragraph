@@ -18,10 +18,6 @@
         <url-pattern>/bb_dag/*</url-pattern>
     </servlet>
 
-    <servlet key="repolist-servlet" class="jiragraph.servlets.RepoListServlet" name="bb.jira.RepoListServlet">
-        <url-pattern>/jiragraph/repolist</url-pattern>
-    </servlet>
-
     <!--
     <web-item key="admin_link" name="admin" section="system.user.options/jira-help" weight="10">
         <label>Jiragraph Config</label>
